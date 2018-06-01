@@ -16,22 +16,29 @@
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.11</artifactId>
-            <version>2.3.0</version>
+            <version>2.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-sql_2.11</artifactId>
-            <version>2.3.0</version>
+            <version>2.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-mllib_2.11</artifactId>
-            <version>2.3.0</version>
+            <version>2.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>42.2.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.dbis-ilm</groupId>
+            <artifactId>stark</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/src/main/resources/stark-1.0-SNAPSHOT.jar</systemPath>
         </dependency>
     </dependencies>
 </project>
