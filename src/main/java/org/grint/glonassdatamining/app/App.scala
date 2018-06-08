@@ -22,18 +22,25 @@ object App {
 
         DataLoader.load(sparkSession)
 
-        val testTable = DataLoader.addressesWithGps.join(DataLoader.cards, "id")
+//        val testTable = DataLoader.addressesWithGps.join(DataLoader.cards, "id")
+        val testTable = DataLoader.testData
         println(testTable.count())
 
-        val raw: RDD[(String, String, Double, Double, String)] = testTable
-            .select("createddatetime", "id", "longitude", "latitude", "address")
-            .map(arr => (arr(0).toString, arr(1).toString, arr(2).asInstanceOf[Double],
-                arr(3).asInstanceOf[Double], "POINT(" + arr(2) + " " + arr(3) + ")") ).rdd
+        //arr(2).asInstanceOf[Double]
+        val raw: RDD[(Long, String, Double, Double, String)] = testTable
+            .select("createddatetime", "id", "longitude", "latitude")
+            .map(arr => (arr(0).asInstanceOf[Long], arr(1).toString, arr.getDouble(2),
+                arr.getDouble(3), "POINT(" + arr(2) + " " + arr(3) + ")") ).rdd
+
+        raw.foreach(f => println(f))
 
         val spatialRDD = raw.keyBy(_._5).map{case (k,v) => (STObject(k), v)}
 
-        val clusters = spatialRDD.cluster(20, 0.5, {case (g,v) => v })
+        // run DBSCAN. first parmeter - minPts, second - epsilon
+        // should separaite points on clusters (clusterId shoulld be different)
+        val clusters = spatialRDD.cluster(3, 0.5, {case (g,v) => v._2 })
         println(clusters.count())
+        clusters.foreach(f => println(f))
     }
 
 }
