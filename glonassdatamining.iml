@@ -11,7 +11,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="scala-sdk-2.11.5" level="application" />
     <orderEntry type="library" name="scala-sdk-2.11.8" level="application" />
     <orderEntry type="library" name="Maven: org.apache.spark:spark-core_2.11:2.1.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.avro:avro-mapred:hadoop2:1.7.7" level="project" />
@@ -23,7 +22,6 @@
     <orderEntry type="library" name="Maven: com.twitter:chill_2.11:0.8.0" level="project" />
     <orderEntry type="library" name="Maven: com.esotericsoftware:kryo-shaded:3.0.3" level="project" />
     <orderEntry type="library" name="Maven: com.esotericsoftware:minlog:1.3.0" level="project" />
-    <orderEntry type="library" name="Maven: org.objenesis:objenesis:2.1" level="project" />
     <orderEntry type="library" name="Maven: com.twitter:chill-java:0.8.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.xbean:xbean-asm5-shaded:4.4" level="project" />
     <orderEntry type="library" name="Maven: org.apache.hadoop:hadoop-client:2.2.0" level="project" />
@@ -40,8 +38,6 @@
     <orderEntry type="library" name="Maven: commons-beanutils:commons-beanutils-core:1.8.0" level="project" />
     <orderEntry type="library" name="Maven: com.google.protobuf:protobuf-java:2.5.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.hadoop:hadoop-auth:2.2.0" level="project" />
-    <orderEntry type="library" name="Maven: org.apache.commons:commons-compress:1.4.1" level="project" />
-    <orderEntry type="library" name="Maven: org.tukaani:xz:1.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.hadoop:hadoop-hdfs:2.2.0" level="project" />
     <orderEntry type="library" name="Maven: org.mortbay.jetty:jetty-util:6.1.26" level="project" />
     <orderEntry type="library" name="Maven: org.apache.hadoop:hadoop-mapreduce-client-app:2.2.0" level="project" />
@@ -160,14 +156,28 @@
     <orderEntry type="library" name="Maven: org.jpmml:pmml-model:1.2.15" level="project" />
     <orderEntry type="library" name="Maven: org.jpmml:pmml-schema:1.2.15" level="project" />
     <orderEntry type="library" name="Maven: org.postgresql:postgresql:42.2.2" level="project" />
-    <orderEntry type="module-library">
-      <library name="Maven: com.github.dbis-ilm:stark:1.0-SNAPSHOT">
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/libs/stark-1.0-SNAPSHOT.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
+    <orderEntry type="library" name="Maven: com.github.dbis-ilm:stark:1.0-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.locationtech.jts:jts-core:1.15.0" level="project" />
+    <orderEntry type="library" name="Maven: org.scala-graph:graph-core_2.11:1.11.4" level="project" />
+    <orderEntry type="library" name="Maven: com.github.scopt:scopt_2.11:3.3.0" level="project" />
+    <orderEntry type="library" name="Maven: com.johnsnowlabs.nlp:spark-nlp_2.11:1.5.4" level="project" />
+    <orderEntry type="library" name="Maven: com.typesafe:config:1.3.0" level="project" />
+    <orderEntry type="library" name="Maven: org.rocksdb:rocksdbjni:5.1.4" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.commons:commons-compress:1.15" level="project" />
+    <orderEntry type="library" name="Maven: org.objenesis:objenesis:2.6" level="project" />
+    <orderEntry type="library" name="Maven: org.tensorflow:tensorflow:1.8.0" level="project" />
+    <orderEntry type="library" name="Maven: org.tensorflow:libtensorflow:1.8.0" level="project" />
+    <orderEntry type="library" name="Maven: org.tensorflow:libtensorflow_jni:1.8.0" level="project" />
+    <orderEntry type="library" name="Maven: com.amazonaws:aws-java-sdk-s3:1.11.313" level="project" />
+    <orderEntry type="library" name="Maven: com.amazonaws:aws-java-sdk-kms:1.11.313" level="project" />
+    <orderEntry type="library" name="Maven: com.amazonaws:aws-java-sdk-core:1.11.313" level="project" />
+    <orderEntry type="library" name="Maven: commons-logging:commons-logging:1.1.3" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpclient:4.5.5" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpcore:4.4.9" level="project" />
+    <orderEntry type="library" name="Maven: software.amazon.ion:ion-java:1.0.2" level="project" />
+    <orderEntry type="library" name="Maven: com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.7" level="project" />
+    <orderEntry type="library" name="Maven: joda-time:joda-time:2.8.1" level="project" />
+    <orderEntry type="library" name="Maven: com.amazonaws:jmespath-java:1.11.313" level="project" />
+    <orderEntry type="library" name="Maven: com.github.master:spark-stemming_2.10:0.2.0" level="project" />
   </component>
 </module>

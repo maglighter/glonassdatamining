@@ -1,31 +1,11 @@
 package org.grint.glonassdatamining.app
 
-import java.sql.Timestamp
-
-import dbis.stark._
+import org.apache.spark.mllib.fpm.{AssociationRules, FPGrowth}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.grint.glonassdatamining.clusterization.SpatioTemporalPointDbscan
 import org.grint.glonassdatamining.datahelper.{DataHelper, OutputCsv}
-import org.grint.glonassdatamining.clusterization.{Payload, SpatioTemporalPointDbscan}
-
-/**
-  * Format of the input RDD for clustering
-  *
-  * @param timestamp point datetime value in milliseconds since 1970
-  * @param id point id
-  * @param longitude point longitude
-  * @param latitude point longitude latitude
-  * @param wktPoint point in WKT format
-  * @param description text description of the point
-  * @param gisexgroup category
-  */
-case class Input(timestamp: Timestamp,
-                 id: String,
-                 longitude: Double,
-                 latitude: Double,
-                 wktPoint: String,
-                 description: String,
-                 gisexgroup: String)
+import org.grint.glonassdatamining.nlp.CategorizationByDescription
 
 /**
   * Main file of the project
@@ -37,21 +17,123 @@ case class Input(timestamp: Timestamp,
   */
 object App {
 
-    def main(args: Array[String]): Unit = {
-        // initializing SparkSession
-        val sparkSession = SparkSession
-            .builder()
-            .appName("GLONASS+112 data mining")
-            .master("local[4]")
-            .getOrCreate()
-        import sparkSession.implicits._
+    private var dataHelper: DataHelper = _
 
+    private val sparkSession: SparkSession = SparkSession
+        .builder()
+        .appName("GLONASS+112 data mining")
+        .master("local[4]")
+        .getOrCreate()
+
+    import sparkSession.implicits._
+
+    private var configuration: Config = _
+
+    def main(args: Array[String]): Unit = {
+        parseParams(args)
+
+        println(("Params: spatial epsilon %s, temporal epsilon %s minutes, "
+            + "minimum points %s (\"-1\" - all), output file path %s")
+            .format(configuration.epsilonSpatial, configuration.epsilonTemporal / 1000 / 60,
+                configuration.minPts, configuration.output))
+
+        // loading data from different sources (csv, postgres, etc...)
+        dataHelper = new DataHelper(sparkSession)
+        dataHelper.load(configuration.limit)
+
+        val nlp = new CategorizationByDescription(dataHelper.sufferers, sparkSession)
+            .tokenize
+            .convertToWordBaseForm
+            .indexWordsByFrequency
+            .getTable
+
+
+        // cluster(true)
+        // findAssociationRules(dataHelper.output)
+    }
+
+    def cluster(needSave: Boolean = true): RDD[OutputCsv] = {
+        val dbTable = dataHelper.addressesWithGps.join(dataHelper.cards, "id")
+
+        // clustering input rdd
+        val dbscan = new SpatioTemporalPointDbscan(configuration, sparkSession)
+        dbscan.prepareInput(dbTable)
+        val clusters = dbscan.run()
+
+        val model = clusters.map { case (stObject, (clusterId, payload)) => OutputCsv(
+            clusterId, payload.id, payload.latitude,
+            payload.longitude, stObject.time.get.start.value,
+            payload.description, payload.gisexgroup)
+        }
+
+        // saving results of clusterization to a CSV file
+        if (needSave) {
+            dataHelper.write(model, configuration.output)
+        }
+
+        model
+    }
+
+    def findAssociationRules(computedClustersTable: Option[DataFrame] = None,
+                             minConfidence: Double = 0.8,
+                             minSupport: Double = 0.2):  RDD[AssociationRules.Rule[String]] = {
+        val model: RDD[OutputCsv] = {
+            if (computedClustersTable.isDefined) {
+                computedClustersTable.get
+                    .select("clusterId", "id", "longitude",
+                        "latitude", "timestamp", "description", "gisexgroup")
+                    .map(row => {
+                        OutputCsv(row(0).asInstanceOf[Int],
+                            row(1).toString,
+                            row.getDouble(2),
+                            row.getDouble(3),
+                            row.getLong(4),
+                            row.getString(5),
+                            row.getString(6))
+                    }).rdd
+            } else {
+                cluster()
+            }
+        }
+
+        val eventsByCategories = dataHelper.eventsByCategories //.rdd.map(r => (r(0).toString, r(1).toString))
+
+        println(eventsByCategories.distinct().count())
+
+        val transactions = model.filter(f => f.clusterId != 0).toDF("clusterId", "id", "longitude",
+            "latitude", "timestamp", "description", "gisexgroup").join(eventsByCategories, "id").select("clusterId", "category").rdd.map(row => (row(0).asInstanceOf[Int],
+            row(1).toString)).groupByKey().map(i => i._2.toArray.distinct).filter(i => i.length > 1)
+
+        println(transactions.count())
+        transactions.foreach(i => println(i.mkString(" ")))
+
+        // var o=eventsByCategories.map(a => (model.filter(m => m.id == a._1), a._2)).count()//.map(k => (k._1.first().clusterId, k._2)).groupByKey().map(i => i._2).count
+
+        val fpg = new FPGrowth()
+            .setMinSupport(minSupport)
+        val mod = fpg.run(transactions)
+        mod.freqItemsets.collect().foreach { itemset =>
+            println(s"${itemset.items.mkString("[", ",", "]")},${itemset.freq}")
+        }
+
+        val associationRules = mod.generateAssociationRules(minConfidence)
+        associationRules.collect().foreach { rule =>
+            println(s"${rule.antecedent.mkString("[", ",", "]")}=> " +
+                s"${rule.consequent.mkString("[", ",", "]")},${rule.confidence}")
+        }
+
+        println("Number of clusters: " + model.groupBy(_.clusterId).count())
+
+        associationRules
+    }
+
+    def parseParams(args: Array[String]): Unit = {
         // parsing program arguments
-        var configuration = Config()
+        configuration = Config()
         val parser = new scopt.OptionParser[Config]("glonass112-config") {
             head("glonass112-config", "0.1")
-            opt[Double]("epsilonSpatial") action { (x, c) => c.copy(epsilonSpatial = x) } text "spatial epsilon parameter for DBSCAN (0.003 by default"
-            opt[Long]("epsilonTemporal") action { (x, c) => c.copy(epsilonTemporal = x) } text "temporal epsilon parameter for DBSCAN in seconds (60 min by default"
+            opt[Double]("epsilonSpatial") action { (x, c) => c.copy(epsilonSpatial = x) } text "spatial epsilon parameter for DBSCAN (0.003 by default)"
+            opt[Long]("epsilonTemporal") action { (x, c) => c.copy(epsilonTemporal = x) } text "temporal epsilon parameter for DBSCAN in seconds (60 min by default)"
             opt[Int]("minPts") action { (x, c) => c.copy(minPts = x) } text "minimum number of points in cluster parameter for DBSCAN (2 by default)"
             opt[Int]("limit") action { (x, c) => c.copy(limit = x) } text "maximum number of rows in input table"
             opt[java.net.URI]('o', "output") action { (x, c) => c.copy(output = x) } text "output is the result file"
@@ -64,8 +146,8 @@ object App {
                     c.minPts,
                     c.limit,
                     if (c.output.toString == ".")
-                        java.net.URI.create("./output_%seps_%smin_%srows.csv"
-                        .format(c.epsilonSpatial, c.epsilonTemporal, c.limit))
+                        java.net.URI.create("./output_%seps_%smin.csv"
+                            .format(c.epsilonSpatial, c.epsilonTemporal / 60))
                     else
                         configuration.output
                 )
@@ -73,50 +155,6 @@ object App {
                 // arguments are bad, error message will have been displayed
                 return
         }
-        println("Params: spatial epsilon %s, temporal epsilon %s, minimum points %s, output file path %s"
-            .format(configuration.epsilonSpatial, configuration.epsilonTemporal/1000, configuration.minPts, configuration.output))
-
-        // loading data from different sources (csv, postgres, etc...)
-        val dataHelper = new DataHelper(sparkSession)
-        dataHelper.load(configuration.limit)
-
-        // join table containing GPS coordinates of addresses and table 'cards' by id
-        val dbTable = dataHelper.addressesWithGps.join(dataHelper.cards, "id")
-
-        // creating input rdd from the resulting table for clustering
-        val input: RDD[Input] = dbTable
-            .select("createddatetime", "id", "longitude", "latitude", "description", "gisexgroup")
-            .map(row => {
-                Input(row(0).asInstanceOf[Timestamp],
-                    row(1).toString,
-                    row.getDouble(2),
-                    row.getDouble(3),
-                    "POINT(" + row(2) + " " + row(3) + ")",
-                    (if (row.isNullAt(4)) "" else row.getString(4)).replaceAll("\n", ""),
-                    if (row.isNullAt(5)) "" else row.getString(5))
-            }).rdd
-
-        println("Input rows count: " + input.count())
-        val spatialTemporalRDD = input.keyBy(_.wktPoint).map { case(wktPoint, inpt) =>
-            (STObject(wktPoint, inpt.timestamp.getTime),
-                Payload(inpt.id,
-                    inpt.latitude,
-                    inpt.longitude,
-                    inpt.description,
-                    inpt.gisexgroup)) }
-
-        // clustering input rdd
-        val clusters = SpatioTemporalPointDbscan.run(configuration, spatialTemporalRDD)
-
-        val model = clusters.map {case (stObject, (clusterId, payload)) => OutputCsv(
-            clusterId, payload.id, payload.latitude,
-            payload.longitude, stObject.time.get.start.value,
-            payload.description, payload.gisexgroup)}
-
-        println("Number of clusters: " + model.groupBy(_.clusterId).count())
-
-        // saving results of clusterization to CSV file
-        dataHelper.write(model, configuration.output)
     }
 
 }

@@ -34,7 +34,7 @@ colors = ['red', 'blue', 'green', 'purple', 'orange', 'darkred',
              'darkpurple', 'lightgreen', 'gray', 'black']
 locations = {}
 clusters = {}
-with open(csv_path, newline='\n') as csvfile:    
+with open(csv_path, newline='\n', encoding='utf-8') as csvfile:    
     rows = csv.DictReader(csvfile, delimiter=',', quotechar='"')
     counter = 0
     for row in rows:
@@ -109,10 +109,17 @@ for counter, clusterId in enumerate(sorted(clusters.keys())):
         distance = calculate_radius_in_meters(x, y, radius) * 2
         print('Cluster', clusterId, 'center', x, y, distance)
 
+        points_ids = []
+        for l in sorted(clusters[clusterId]['points']):
+            for p in locations[l]:
+                points_ids.append("ids="+p[1])
+        
+        iframe = folium.IFrame(html='''<a href="http://127.0.0.1:8080/searchIds/?{}">[Open in DB] </a>Cluster {} [{}] {}<br>'''.format("&".join(points_ids), str(clusterId), points_in_cluster, clusters[clusterId]['color']), width=500, height=300)
+        p = folium.Popup(iframe, max_width=2650)
         folium.features.Circle(
             radius=distance,
             location=[x, y],
-            popup='Cluster {} [{}] {}'.format(str(clusterId), points_in_cluster, clusters[clusterId]['color']),
+            popup=p,
             color=clusters[clusterId]['color'],
             fill=True,
         ).add_to(circles_fg)
