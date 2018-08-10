@@ -24,6 +24,7 @@ object App {
         .builder()
         .appName("GLONASS+112 data mining")
         .master("local[4]")
+        .config("spark.extraListeners","com.groupon.sparklint.SparklintListener")
         .getOrCreate()
 
     import sparkSession.implicits._
