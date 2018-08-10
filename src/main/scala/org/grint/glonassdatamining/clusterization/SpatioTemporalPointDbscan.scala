@@ -18,14 +18,14 @@ class SpatioTemporalPointDbscan(configuration: Config, sparkSession: SparkSessio
     /**
       * input rdd with spatio-temporal data
       */
-    private var _input: RDD[(STObject, Payload)] = null
+    private var _input: RDD[(STObject, Payload)] = _
 
     /**
       * Creating input rdd from the resulting table for clustering
       *
       * @param inputTable imput table
       */
-    def prepareInput(inputTable: DataFrame) = {
+    def prepareInput(inputTable: DataFrame): Unit = {
         val input: RDD[Input] = inputTable
             .select("createddatetime", "id", "longitude",
                 "latitude", "description", "gisexgroup")
@@ -39,15 +39,17 @@ class SpatioTemporalPointDbscan(configuration: Config, sparkSession: SparkSessio
                     if (row.isNullAt(5)) "" else row.getString(5))
             }).rdd
 
+
         println("Input rows count: " + input.count())
         _input = input.keyBy(_.wktPoint).map { case (wktPoint, inpt) =>
             (STObject(wktPoint, inpt.timestamp.getTime),
-                Payload(inpt.id,
-                    inpt.latitude,
-                    inpt.longitude,
-                    inpt.description,
-                    inpt.gisexgroup))
+                    Payload(inpt.id,
+                            inpt.latitude,
+                            inpt.longitude,
+                            inpt.description,
+                            inpt.gisexgroup))
         }
+        println("Partit " + _input.partitions.size)
     }
 
     /**
